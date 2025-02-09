@@ -62,7 +62,7 @@ jobs:
           declare -A processed
 
           while IFS= read -r line; do
-              file=$(echo "$line" | xargs)  # удаляем лишние пробелы
+              file=$(echo "$line" | xargs)
               [[ -z "$file" || "$file" =~ ^# ]] && continue
               keep["$file"]=1
           done < "$INTEREST_FILE"
@@ -77,7 +77,6 @@ jobs:
                       if [[ -f "$fullpath" ]]; then
                           echo "Processing: $file"
                           while IFS= read -r incl; do
-                              # Убираем префикс 'include:' и очищаем от лишних пробелов
                               incl=${incl#include:}
                               incl=$(echo "$incl" | xargs)
                               if [[ -n "$incl" && -z "${keep[$incl]:-}" ]]; then
