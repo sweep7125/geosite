@@ -19,28 +19,28 @@ jobs:
       - name: Checkout codebase
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Checkout Loyalsoldier/domain-list-custom
         uses: actions/checkout@v4
         with:
           repository: Loyalsoldier/domain-list-custom
           path: custom
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Checkout v2fly/domain-list-community
         uses: actions/checkout@v4
         with:
           repository: v2fly/domain-list-community
           path: community
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Checkout runetfreedom/russia-domains-list
         uses: actions/checkout@v4
         with:
           repository: runetfreedom/russia-domains-list
           path: additional
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup Go
         uses: actions/setup-go@v5
