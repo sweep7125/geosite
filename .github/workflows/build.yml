@@ -1,0 +1,173 @@
+name: Build geosite.dat
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 0 */3 * *"
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - ".gitignore"
+      - "LICENSE*"
+      - "*.md"
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Loyalsoldier/domain-list-custom
+        uses: actions/checkout@v4
+        with:
+          repository: Loyalsoldier/domain-list-custom
+          path: custom
+
+      - name: Checkout v2fly/domain-list-community
+        uses: actions/checkout@v4
+        with:
+          repository: v2fly/domain-list-community
+          path: community
+
+      - name: Checkout runetfreedom/russia-domains-list
+        uses: actions/checkout@v4
+        with:
+          repository: runetfreedom/russia-domains-list
+          path: additional
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ./custom/go.mod
+          cache-dependency-path: ./custom/go.sum
+
+      - name: Filter data directory based on sections
+        run: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          INTEREST_FILE="sections"
+          DATA_DIR="./community/data"
+
+          if [[ ! -f "$INTEREST_FILE" ]]; then
+              echo "File $INTEREST_FILE not found."
+              exit 1
+          fi
+
+          declare -A keep
+          declare -A processed
+
+          while IFS= read -r line; do
+              file=$(echo "$line" | xargs)  # удаляем лишние пробелы
+              [[ -z "$file" || "$file" =~ ^# ]] && continue
+              keep["$file"]=1
+          done < "$INTEREST_FILE"
+
+          changed=1
+          while [[ $changed -eq 1 ]]; do
+              changed=0
+              for file in "${!keep[@]}"; do
+                  if [[ -z "${processed[$file]:-}" ]]; then
+                      processed["$file"]=1
+                      fullpath="$DATA_DIR/$file"
+                      if [[ -f "$fullpath" ]]; then
+                          echo "Processing: $file"
+                          while IFS= read -r incl; do
+                              # Убираем префикс 'include:' и очищаем от лишних пробелов
+                              incl=${incl#include:}
+                              incl=$(echo "$incl" | xargs)
+                              if [[ -n "$incl" && -z "${keep[$incl]:-}" ]]; then
+                                  keep["$incl"]=1
+                                  changed=1
+                              fi
+                          done < <(grep '^include:' "$fullpath" || true)
+                      else
+                          echo "Warning: File '$fullpath' not found."
+                      fi
+                  fi
+              done
+          done
+
+          echo "Files to keep:"
+          for file in "${!keep[@]}"; do
+              echo " - $file"
+          done
+
+          find "$DATA_DIR" -type f | while IFS= read -r filepath; do
+              relpath="${filepath#$DATA_DIR/}"
+              if [[ -z "${keep[$relpath]:-}" ]]; then
+                  echo "Removing: $filepath"
+                  rm -f "$filepath"
+              fi
+          done
+
+
+
+
+      - name: Set variables
+        run: |
+          echo "RELEASE_NAME=Geosite Release" >> $GITHUB_ENV
+          echo "TAG_NAME=geosite-release" >> $GITHUB_ENV
+
+          echo "ANTIFILTER_DOWNLOAD_COMMUNITY=https://community.antifilter.download/list/domains.lst" >> $GITHUB_ENV
+          echo "REFILTER_ALL=https://raw.githubusercontent.com/1andrevich/Re-filter-lists/refs/heads/main/domains_all.lst" >> $GITHUB_ENV
+
+          echo "WIN_UPDATE=https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/update.txt" >> $GITHUB_ENV
+          echo "WIN_EXTRA=https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/extra.txt" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Get and add domain lists
+        run: |
+          curl -sSL $ANTIFILTER_DOWNLOAD_COMMUNITY > ./antifilter-download-community.txt
+          curl -sSL $REFILTER_ALL > ./refilter.txt
+          curl -sSL $WIN_UPDATE | grep "0.0.0.0" | awk '{print $2}' > ./win-update.txt
+          curl -sSL $WIN_EXTRA | grep "0.0.0.0" | awk '{print $2}' > ./win-extra.txt
+
+          cp {antifilter-download-community,refilter,win-update,win-extra}.txt ./community/data/
+          for f in ./community/data/*.txt; do mv "$f" "${f//.txt/}"; done
+
+          rm -rf ./additional/README.md
+          mv ./additional/* ./community/data/
+
+      - name: Build Russia lists
+        run: |
+          echo "include:antifilter-download-community" > ./community/data/ru-blocked
+          echo "include:refilter" >> ./community/data/ru-blocked
+
+      - name: Build geosite.dat file
+        run: |
+          cd custom || exit 1
+          go run ./ -outputpath=../publish -exportlists= -datapath=../community/data -togfwlist=
+          cd ../ && rm -rf custom
+
+      - name: Generate geosite.dat sha256 hash
+        run: |
+          sha256sum ./publish/geosite.dat > ./publish/geosite.dat.sha256sum
+
+      - name: Git push assets to "release" branch
+        run: |
+          cd publish || exit 1
+          git init
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b release
+          git add -A
+          git commit -m "${{ env.RELEASE_NAME }}"
+          git remote add geosite "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+
+          git push -f -u geosite release
+
+      - name: Delete existing release
+        run: |
+          gh release delete ${{ env.TAG_NAME }} --yes || true
+          gh api repos/${{ github.repository }}/git/refs/tags/${{ env.TAG_NAME }} -X DELETE || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload assets to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file_glob: true
+          file: ./publish/*
+          release_name: ${{ env.RELEASE_NAME }}
+          tag: ${{ env.TAG_NAME }}
