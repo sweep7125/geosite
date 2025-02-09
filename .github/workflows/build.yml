@@ -161,18 +161,11 @@ jobs:
 
           git push -f -u geosite release
 
-      - name: Delete existing release
+      - name: Create or update release and upload top-level assets
         run: |
-          gh release delete ${{ env.TAG_NAME }} --yes || true
-          gh api repos/${{ github.repository }}/git/refs/tags/${{ env.TAG_NAME }} -X DELETE || true
+          if ! gh release view "${{ env.TAG_NAME }}" > /dev/null 2>&1; then
+            gh release create "${{ env.TAG_NAME }}" -t "${{ env.RELEASE_NAME }}" -n "Release generated automatically" --target release --draft=false
+          fi
+          gh release upload "${{ env.TAG_NAME }}" $(find ./publish -maxdepth 1 -type f) --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload assets to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file_glob: true
-          file: ./publish/*
-          release_name: ${{ env.RELEASE_NAME }}
-          tag: ${{ env.TAG_NAME }}
