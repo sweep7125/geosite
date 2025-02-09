@@ -138,7 +138,7 @@ jobs:
       - name: Build geosite.dat file
         run: |
           cd custom || exit 1
-          go run ./ -outputpath=../publish -exportlists= -datapath=../community/data -togfwlist=false
+          go run ./ -outputpath=../publish -exportlists= -datapath=../community/data -togfwlist=ru-blocked
           cd ../ && rm -rf custom
 
       - name: Generate geosite.dat sha256 hash
