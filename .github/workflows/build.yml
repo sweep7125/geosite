@@ -105,12 +105,6 @@ jobs:
               fi
           done
 
-          echo "Финальный список файлов в $DATA_DIR:"
-          find "$DATA_DIR" -type f | sort
-
-
-
-
       - name: Set variables
         run: |
           echo "RELEASE_NAME=Geosite Release" >> $GITHUB_ENV
@@ -144,7 +138,7 @@ jobs:
       - name: Build geosite.dat file
         run: |
           cd custom || exit 1
-          go run ./ -outputpath=../publish -exportlists= -datapath=../community/data
+          go run ./ -outputpath=../publish -exportlists= -datapath=../community/data -togfwlist=false
           cd ../ && rm -rf custom
 
       - name: Generate geosite.dat sha256 hash
