@@ -140,6 +140,7 @@ jobs:
           cd custom || exit 1
           go run ./ -outputpath=../publish -exportlists= -datapath=../community/data -togfwlist=ru-blocked
           cd ../ && rm -rf custom
+          rm -rf ./publish/gfwlist.txt
 
       - name: Generate geosite.dat sha256 hash
         run: |
