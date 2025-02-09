@@ -105,6 +105,9 @@ jobs:
               fi
           done
 
+          echo "Финальный список файлов в $DATA_DIR:"
+          find "$DATA_DIR" -type f | sort
+
 
 
 
@@ -141,7 +144,7 @@ jobs:
       - name: Build geosite.dat file
         run: |
           cd custom || exit 1
-          go run ./ -outputpath=../publish -exportlists= -datapath=../community/data -togfwlist=
+          go run ./ -outputpath=../publish -exportlists= -datapath=../community/data
           cd ../ && rm -rf custom
 
       - name: Generate geosite.dat sha256 hash
