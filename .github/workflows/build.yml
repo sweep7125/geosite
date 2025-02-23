@@ -132,6 +132,7 @@ jobs:
           echo "include:antifilter-download-community" > ./community/data/ru-blocked
           echo "include:refilter" >> ./community/data/ru-blocked
           echo "include:ru-available-only-inside" >> ./community/data/category-ru
+          cat ./community/data/category-ru
 
       - name: Build geosite.dat file
         run: |
