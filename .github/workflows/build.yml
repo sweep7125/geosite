@@ -114,19 +114,14 @@ jobs:
 
           echo "ANTIFILTER_DOWNLOAD_COMMUNITY=https://community.antifilter.download/list/domains.lst" >> $GITHUB_ENV
           echo "REFILTER_ALL=https://raw.githubusercontent.com/1andrevich/Re-filter-lists/refs/heads/main/domains_all.lst" >> $GITHUB_ENV
-
-          echo "WIN_UPDATE=https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/update.txt" >> $GITHUB_ENV
-          echo "WIN_EXTRA=https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/extra.txt" >> $GITHUB_ENV
         shell: bash
 
       - name: Get and add domain lists
         run: |
           curl -sSL $ANTIFILTER_DOWNLOAD_COMMUNITY > ./antifilter-download-community.txt
           curl -sSL $REFILTER_ALL > ./refilter.txt
-          curl -sSL $WIN_UPDATE | grep "0.0.0.0" | awk '{print $2}' > ./win-update.txt
-          curl -sSL $WIN_EXTRA | grep "0.0.0.0" | awk '{print $2}' > ./win-extra.txt
 
-          cp {antifilter-download-community,refilter,win-update,win-extra}.txt ./community/data/
+          cp {antifilter-download-community,refilter}.txt ./community/data/
           for f in ./community/data/*.txt; do mv "$f" "${f//.txt/}"; done
 
           rm -rf ./additional/README.md
@@ -136,6 +131,7 @@ jobs:
         run: |
           echo "include:antifilter-download-community" > ./community/data/ru-blocked
           echo "include:refilter" >> ./community/data/ru-blocked
+          echo "include:ru-available-only-inside" >> ./community/data/category-ru
 
       - name: Build geosite.dat file
         run: |
