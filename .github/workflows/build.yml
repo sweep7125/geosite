@@ -65,8 +65,9 @@ jobs:
           declare -A processed
 
           while IFS= read -r line; do
-              file=$(echo "$line" | xargs)
-              [[ -z "$file" || "$file" =~ ^# ]] && continue
+              line="${line%%#*}"
+              file="$(echo "$line" | xargs)"
+              [[ -z "$file" ]] && continue
               keep["$file"]=1
           done < "$INTEREST_FILE"
 
@@ -80,15 +81,22 @@ jobs:
                       if [[ -f "$fullpath" ]]; then
                           echo "Processing: $file"
                           while IFS= read -r incl; do
-                              incl=${incl#include:}
-                              incl=$(echo "$incl" | xargs)
+                              # Убираем префикс "include:" и комментарии после '#'
+                              incl="${incl#include:}"
+                              incl="${incl%%#*}"
+                              incl="$(echo "$incl" | xargs)"
                               if [[ -n "$incl" && -z "${keep[$incl]:-}" ]]; then
                                   keep["$incl"]=1
                                   changed=1
                               fi
                           done < <(grep '^include:' "$fullpath" || true)
                       else
-                          echo "Warning: File '$fullpath' not found."
+                          # Если в названии есть символ '#', то, вероятно, это описательная часть — игнорируем предупреждение
+                          if [[ "$fullpath" == *"#"* ]]; then
+                              echo "Skipping warning for path with '#': $fullpath"
+                          else
+                              echo "Warning: File '$fullpath' not found."
+                          fi
                       fi
                   fi
               done
