@@ -65,6 +65,7 @@ jobs:
           declare -A processed
 
           while IFS= read -r line; do
+              line="${line//$'\r'/}"
               line="${line%%#*}"
               file="$(echo "$line" | xargs)"
               [[ -z "$file" ]] && continue
@@ -75,13 +76,15 @@ jobs:
           while [[ $changed -eq 1 ]]; do
               changed=0
               for file in "${!keep[@]}"; do
-                  if [[ -z "${processed[$file]:-}" ]]; then
-                      processed["$file"]=1
-                      fullpath="$DATA_DIR/$file"
+                  sanitized_file="${file//$'\r'/}"
+                  sanitized_file="$(echo "$sanitized_file" | xargs)"
+                  if [[ -z "${processed[$sanitized_file]:-}" ]]; then
+                      processed["$sanitized_file"]=1
+                      fullpath="$DATA_DIR/$sanitized_file"
                       if [[ -f "$fullpath" ]]; then
-                          echo "Processing: $file"
+                          echo "Processing: $sanitized_file"
                           while IFS= read -r incl; do
-                              # Убираем префикс "include:" и комментарии после '#'
+                              incl="${incl//$'\r'/}"
                               incl="${incl#include:}"
                               incl="${incl%%#*}"
                               incl="$(echo "$incl" | xargs)"
@@ -91,7 +94,6 @@ jobs:
                               fi
                           done < <(grep '^include:' "$fullpath" || true)
                       else
-                          # Если в названии есть символ '#', то, вероятно, это описательная часть — игнорируем предупреждение
                           if [[ "$fullpath" == *"#"* ]]; then
                               echo "Skipping warning for path with '#': $fullpath"
                           else
@@ -109,11 +111,13 @@ jobs:
 
           find "$DATA_DIR" -type f | while IFS= read -r filepath; do
               relpath="${filepath#$DATA_DIR/}"
+              relpath="${relpath//$'\r'/}"
               if [[ -z "${keep[$relpath]:-}" ]]; then
                   echo "Removing: $filepath"
                   rm -f "$filepath"
               fi
           done
+
 
       - name: Set variables
         run: |
