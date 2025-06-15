@@ -133,9 +133,9 @@ jobs:
 
       - name: Build Russia lists
         run: |
-          echo "include:antifilter-download-community" > ./community/data/ru-blocked
-          echo "include:itdog-inside" >> ./community/data/ru-blocked
-          echo "include:no-russia" >> ./community/data/ru-blocked
+          echo "include:antifilter-download-community" > ./community/data/ru-bundle
+          echo "include:itdog-inside" >> ./community/data/ru-bundle
+          echo "include:no-russia" >> ./community/data/ru-bundle
 
       - name: Build geosite.dat file
         run: |
