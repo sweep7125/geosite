@@ -35,13 +35,6 @@ jobs:
           path: community
           fetch-depth: 1
 
-      - name: Checkout runetfreedom/russia-domains-list
-        uses: actions/checkout@v4
-        with:
-          repository: runetfreedom/russia-domains-list
-          path: additional
-          fetch-depth: 1
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -125,25 +118,24 @@ jobs:
           echo "TAG_NAME=geosite-release" >> $GITHUB_ENV
 
           echo "ANTIFILTER_DOWNLOAD_COMMUNITY=https://community.antifilter.download/list/domains.lst" >> $GITHUB_ENV
-          echo "REFILTER_ALL=https://raw.githubusercontent.com/1andrevich/Re-filter-lists/refs/heads/main/domains_all.lst" >> $GITHUB_ENV
+          echo "ITDOG_INSIDE=https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Russia/inside-raw.lst" >> $GITHUB_ENV
+          echo "NO_RUSSIA=https://raw.githubusercontent.com/dartraiden/no-russia-hosts/refs/heads/master/hosts.txt" >> $GITHUB_ENV
         shell: bash
 
       - name: Get and add domain lists
         run: |
           curl -sSL $ANTIFILTER_DOWNLOAD_COMMUNITY > ./antifilter-download-community.txt
-          curl -sSL $REFILTER_ALL > ./refilter.txt
+          curl -sSL $ANTIFILTER_DOWNLOAD_COMMUNITY > ./itdog-inside.txt
+          curl -sSL $ANTIFILTER_DOWNLOAD_COMMUNITY > ./no-russia.txt
 
-          cp {antifilter-download-community,refilter}.txt ./community/data/
+          cp {antifilter-download-community,itdog-inside,no-russia}.txt ./community/data/
           for f in ./community/data/*.txt; do mv "$f" "${f//.txt/}"; done
-
-          rm -rf ./additional/README.md
-          mv ./additional/* ./community/data/
 
       - name: Build Russia lists
         run: |
           echo "include:antifilter-download-community" > ./community/data/ru-blocked
-          echo "include:refilter" >> ./community/data/ru-blocked
-          echo "include:ru-available-only-inside" >> ./community/data/category-ru
+          echo "include:itdog-inside" >> ./community/data/ru-blocked
+          echo "include:no-russia" >> ./community/data/ru-blocked
 
       - name: Build geosite.dat file
         run: |
