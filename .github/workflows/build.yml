@@ -120,15 +120,17 @@ jobs:
           echo "ANTIFILTER_DOWNLOAD_COMMUNITY=https://community.antifilter.download/list/domains.lst" >> $GITHUB_ENV
           echo "ITDOG_INSIDE=https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Russia/inside-raw.lst" >> $GITHUB_ENV
           echo "NO_RUSSIA=https://raw.githubusercontent.com/dartraiden/no-russia-hosts/refs/heads/master/hosts.txt" >> $GITHUB_ENV
+          echo "TRACKERS=https://raw.githubusercontent.com/sakib-m/Pi-hole-Torrent-Blocklist/refs/heads/main/all-torrent-trackres.txt" >> $GITHUB_ENV
         shell: bash
 
       - name: Get and add domain lists
         run: |
           curl -sSL $ANTIFILTER_DOWNLOAD_COMMUNITY > ./antifilter-download-community.txt
-          curl -sSL $ANTIFILTER_DOWNLOAD_COMMUNITY > ./itdog-inside.txt
-          curl -sSL $ANTIFILTER_DOWNLOAD_COMMUNITY > ./no-russia.txt
+          curl -sSL $ITDOG_INSIDE > ./itdog-inside.txt
+          curl -sSL $NO_RUSSIA > ./no-russia.txt
+          curl -sSL $TRACKERS > ./torrent-trackers.txt
 
-          cp {antifilter-download-community,itdog-inside,no-russia}.txt ./community/data/
+          cp {antifilter-download-community,itdog-inside,no-russia,torrent-trackers}.txt ./community/data/
           for f in ./community/data/*.txt; do mv "$f" "${f//.txt/}"; done
 
       - name: Build Russia lists
@@ -140,7 +142,7 @@ jobs:
       - name: Build geosite.dat file
         run: |
           cd custom || exit 1
-          go run ./ -outputpath=../publish -exportlists= -datapath=../community/data -togfwlist=ru-blocked
+          go run ./ -outputpath=../publish -exportlists= -datapath=../community/data -togfwlist=ru-bundle
           cd ../ && rm -rf custom
           rm -rf ./publish/gfwlist.txt
 
